@@ -1,0 +1,86 @@
+```python
+import json
+import re
+from pathlib import Path
+from tkinter import Tk, filedialog, messagebox
+
+
+def nome_seguro(nome):
+    return re.sub(r'[\\/*?:"<>|]', "_", nome)
+
+
+def selecionar_arquivo():
+    root = Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+
+    arquivo = filedialog.askopenfilename(
+        title="Selecione o JSON compactado",
+        filetypes=[("JSON", "*.json")]
+    )
+
+    root.destroy()
+    return arquivo
+
+
+def selecionar_pasta():
+    root = Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+
+    pasta = filedialog.askdirectory(
+        title="Selecione a pasta de saída"
+    )
+
+    root.destroy()
+    return Path(pasta) if pasta else None
+
+
+def descompactar():
+    arquivo_entrada = selecionar_arquivo()
+
+    if not arquivo_entrada:
+        return
+
+    pasta_saida = selecionar_pasta()
+
+    if not pasta_saida:
+        return
+
+    with open(arquivo_entrada, "r", encoding="utf-8") as f:
+        dados = json.load(f)
+
+    clientes = {}
+
+    for ligacao in dados:
+        cliente = ligacao.get("cliente", "Cliente Desconhecido")
+
+        clientes.setdefault(cliente, []).append(ligacao)
+
+    for cliente, ligacoes in clientes.items():
+        arquivo_cliente = (
+            pasta_saida /
+            f"{nome_seguro(cliente)}.json"
+        )
+
+        with open(
+            arquivo_cliente,
+            "w",
+            encoding="utf-8"
+        ) as f:
+            json.dump(
+                ligacoes,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+    messagebox.showinfo(
+        "Concluído",
+        f"{len(clientes)} clientes reconstruídos."
+    )
+
+
+if __name__ == "__main__":
+    descompactar()
+```
